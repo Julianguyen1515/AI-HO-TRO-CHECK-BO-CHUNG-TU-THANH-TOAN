@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Kiểm Tra Chứng Từ – Miễn Phí</title>
+<!-- PDF.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<!-- Tesseract OCR -->
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
+<style>
+:root{
+  --blue:#1F4E79;--lblue:#2E75B6;--lblue2:#D6E4F0;--lblue3:#EEF5FC;
+  --green:#375623;--lgreen:#E2EFDA;--green2:#70AD47;
+  --yellow:#BF8F00;--lyellow:#FFF9E6;
+  --red:#C00000;--lred:#FCE4D6;
+  --gray:#595959;--lgray:#F4F6FA;--border:#BDD7EE;
+  --white:#fff;--shadow:0 2px 10px #1F4E7915;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:Arial,sans-serif;font-size:14px;background:#EEF4FA;color:#222;}
+
+.topbar{background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:space-between;padding:10px 20px;position:sticky;top:0;z-index:200;box-shadow:0 2px 12px #0005;}
+.topbar h1{font-size:15px;font-weight:700;}
+.tabs{display:flex;gap:3px;}
+.tab-btn{background:transparent;border:none;color:#ffffffaa;padding:7px 13px;border-radius:5px;cursor:pointer;font-size:12px;font-weight:600;transition:all .2s;}
+.tab-btn:hover,.tab-btn.active{background:var(--lblue);color:#fff;}
+.topbar-right{display:flex;align-items:center;gap:8px;}
+.user-badge{background:var(--lblue);padding:4px 12px;border-radius:20px;font-size:12px;cursor:pointer;}
+.settings-btn{background:transparent;border:1px solid #ffffff44;color:#fff;padding:4px 10px;border-radius:5px;cursor:pointer;font-size:12px;}
+
+.tab-panel{display:none;padding:20px;max-width:1140px;margin:0 auto;}
+.tab-panel.active{display:block;}
+
+.card{background:#fff;border-radius:10px;box-shadow:var(--shadow);margin-bottom:16px;overflow:hidden;}
+.card-header{background:var(--blue);color:#fff;padding:11px 18px;font-weight:700;font-size:13px;display:flex;align-items:center;gap:8px;}
+.card-body{padding:18px;}
+
+/* Method badges */
+.method-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;}
+.mb-xml{background:#E8F5E9;color:#2E7D32;}
+.mb-pdf{background:#E3F2FD;color:#1565C0;}
+.mb-ocr{background:#FFF3E0;color:#E65100;}
+.mb-gemini{background:#F3E5F5;color:#6A1B9A;}
+.mb-manual{background:#ECEFF1;color:#546E7A;}
+
+/* Upload */
+.upload-zone{border:2.5px dashed var(--lblue);border-radius:12px;background:var(--lblue3);padding:36px 20px;text-align:center;cursor:pointer;transition:all .25s;position:relative;}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--blue);background:var(--lblue2);}
+.upload-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.upload-zone .icon{font-size:40px;margin-bottom:8px;}
+.upload-zone h3{color:var(--blue);font-size:15px;margin-bottom:5px;}
+.upload-zone p{color:var(--gray);font-size:12px;}
+.file-badge{display:inline-flex;align-items:center;gap:5px;background:var(--lblue2);border:1px solid var(--lblue);padding:4px 10px;border-radius:16px;font-size:12px;color:var(--blue);margin:3px;}
+.file-badge .rm{cursor:pointer;color:var(--red);margin-left:3px;}
+
+/* Method selector */
+.method-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px;}
+.method-card{border:2px solid var(--border);border-radius:8px;padding:12px;cursor:pointer;transition:all .2s;text-align:center;}
+.method-card:hover{border-color:var(--lblue);background:var(--lblue3);}
+.method-card.active{border-color:var(--lblue);background:var(--lblue2);}
+.method-card h4{font-size:12px;color:var(--blue);margin:5px 0 3px;}
+.method-card p{font-size:11px;color:var(--gray);}
+.method-card .icon{font-size:22px;}
+.method-card .free-tag{background:#E8F5E9;color:#2E7D32;font-size:10px;padding:1px 6px;border-radius:8px;font-weight:700;}
+
+/* Processing */
+.proc-card{background:linear-gradient(135deg,#1F4E79,#2E75B6);color:#fff;border-radius:10px;padding:22px;text-align:center;margin-bottom:16px;}
+.spinner{width:38px;height:38px;border:4px solid #ffffff40;border-top:4px solid #fff;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 12px;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.proc-steps{display:flex;justify-content:center;gap:16px;margin-top:14px;flex-wrap:wrap;}
+.p-step{font-size:12px;opacity:.45;transition:all .4s;display:flex;align-items:center;gap:4px;}
+.p-step.done{opacity:1;color:#A5D6A7;}
+.p-step.active{opacity:1;font-weight:700;}
+
+/* Progress bar for OCR */
+.ocr-progress{background:#ffffff30;border-radius:8px;height:10px;overflow:hidden;margin:8px 0;}
+.ocr-bar{height:100%;background:#fff;border-radius:8px;transition:width .3s;}
+.ocr-label{font-size:11px;opacity:.85;}
+
+/* Form */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px;}
+.form-grid.cols3{grid-template-columns:1fr 1fr 1fr;}
+.form-group{display:flex;flex-direction:column;gap:4px;}
+.form-group label{font-size:11px;font-weight:700;color:var(--blue);text-transform:uppercase;}
+.form-group input,.form-group select{border:1px solid var(--border);border-radius:5px;padding:7px 10px;font-size:13px;font-family:Arial;transition:border .2s;}
+.form-group input.ai-filled{border-color:var(--green2);background:#F5FFF5;}
+.form-group input:focus,.form-group select:focus{outline:none;border-color:var(--lblue);box-shadow:0 0 0 3px #2E75B615;}
+
+/* Checklist */
+.section-hdr{background:var(--blue);color:#fff;padding:9px 16px;font-weight:700;font-size:12px;border-radius:5px;margin:16px 0 4px;display:flex;align-items:center;gap:8px;}
+.check-table{width:100%;border-collapse:collapse;}
+.check-table th{background:var(--lblue);color:#fff;padding:8px 10px;font-size:11px;text-align:left;}
+.check-table th:nth-child(1){width:36px;text-align:center;}
+.check-table th:nth-child(3){width:110px;text-align:center;}
+.check-table th:nth-child(4){width:88px;text-align:center;}
+.check-table th:nth-child(5){width:200px;}
+.check-table td{padding:8px 10px;border-bottom:1px solid #E8F0F8;font-size:12px;vertical-align:middle;}
+.check-table tr:hover td{background:#F5F9FF;}
+.check-table tr.tax td{background:#FFFDF0;}
+.check-table tr.req td{background:#F5FFF5;}
+.check-table td:nth-child(1){text-align:center;font-weight:700;color:var(--gray);font-size:11px;}
+
+.ai-ind{display:inline-flex;align-items:center;gap:3px;font-size:11px;padding:2px 8px;border-radius:10px;font-weight:700;}
+.ai-ind.ok{background:var(--lgreen);color:var(--green);}
+.ai-ind.fail{background:var(--lred);color:var(--red);}
+.ai-ind.manual{background:var(--lyellow);color:var(--yellow);}
+.ai-ind.na{background:var(--lgray);color:var(--gray);}
+.ai-ind.pending{background:#EEF2F7;color:#aaa;}
+.ai-reason{font-size:11px;color:var(--gray);margin-top:3px;font-style:italic;line-height:1.4;}
+.ai-reason.fail{color:var(--red);}.ai-reason.manual{color:var(--yellow);}
+
+.status-btns{display:flex;gap:3px;justify-content:center;}
+.s-btn{border:1.5px solid #ddd;background:#fff;border-radius:4px;padding:3px 7px;font-size:11px;cursor:pointer;font-weight:700;transition:all .15s;}
+.s-btn.ok{border-color:var(--green2);color:var(--green2);}
+.s-btn.ok.active{background:var(--green2);color:#fff;}
+.s-btn.fail{border-color:var(--red);color:var(--red);}
+.s-btn.fail.active{background:var(--red);color:#fff;}
+.s-btn.na{border-color:var(--gray);color:var(--gray);}
+.s-btn.na.active{background:var(--gray);color:#fff;}
+.note-input{width:100%;border:1px solid #ddd;border-radius:4px;padding:4px 7px;font-size:11px;font-family:Arial;resize:none;}
+
+/* Progress */
+.prog-wrap{background:#E0EEFF;border-radius:8px;height:12px;overflow:hidden;margin:6px 0 3px;}
+.prog-bar{height:100%;background:linear-gradient(90deg,var(--lblue),var(--green2));border-radius:8px;transition:width .5s;}
+
+/* Summary stats */
+.ai-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px;}
+.ai-stat{background:#fff;border-radius:8px;padding:13px;text-align:center;box-shadow:var(--shadow);}
+.ai-stat .num{font-size:26px;font-weight:700;}
+.ai-stat .lbl{font-size:11px;color:var(--gray);margin-top:2px;}
+.ai-stat.ok .num{color:var(--green2);}
+.ai-stat.fail .num{color:var(--red);}
+.ai-stat.manual .num{color:var(--yellow);}
+.ai-stat.score .num{color:var(--blue);}
+
+/* Buttons */
+.btn{padding:9px 20px;border:none;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:7px;}
+.btn-primary{background:var(--lblue);color:#fff;}
+.btn-primary:hover{background:var(--blue);}
+.btn-success{background:var(--green2);color:#fff;}
+.btn-success:hover{background:var(--green);}
+.btn-danger{background:var(--red);color:#fff;}
+.btn-outline{background:#fff;border:1.5px solid var(--lblue);color:var(--lblue);}
+.btn-outline:hover{background:var(--lblue2);}
+.btn-sm{padding:5px 12px;font-size:12px;}
+.btn-group{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;}
+
+.badge{display:inline-block;padding:2px 9px;border-radius:12px;font-size:11px;font-weight:700;}
+.badge-pending{background:#FFF2CC;color:#BF8F00;}
+.badge-review{background:#D6E4F0;color:var(--lblue);}
+.badge-approved{background:var(--lgreen);color:var(--green);}
+.badge-rejected{background:var(--lred);color:var(--red);}
+
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;}
+.stat-card{background:#fff;border-radius:8px;padding:15px;text-align:center;box-shadow:var(--shadow);border-top:3px solid var(--lblue);}
+.stat-card .num{font-size:29px;font-weight:700;color:var(--blue);}
+.stat-card .lbl{font-size:11px;color:var(--gray);margin-top:3px;}
+
+.data-table{width:100%;border-collapse:collapse;font-size:12px;}
+.data-table th{background:var(--lgray);padding:9px 12px;text-align:left;font-size:11px;color:var(--blue);border-bottom:2px solid var(--border);}
+.data-table td{padding:9px 12px;border-bottom:1px solid #EEF2F7;}
+.data-table tr:hover td{background:#F5F9FF;}
+
+.modal-overlay{position:fixed;inset:0;background:#0006;display:flex;align-items:center;justify-content:center;z-index:999;}
+.modal-overlay.hidden{display:none;}
+.modal-box{background:#fff;border-radius:12px;padding:26px;box-shadow:0 8px 40px #0004;width:420px;max-width:94vw;}
+.modal-box h2{color:var(--blue);margin-bottom:14px;font-size:15px;}
+.role-option{border:2px solid var(--border);border-radius:8px;padding:13px;margin-bottom:10px;cursor:pointer;transition:all .2s;}
+.role-option:hover{border-color:var(--lblue);background:var(--lblue3);}
+.role-option h3{font-size:13px;color:var(--blue);}
+.role-option p{font-size:12px;color:var(--gray);margin-top:2px;}
+.reject-reason{width:100%;margin-top:8px;border:1px solid var(--red);border-radius:5px;padding:7px 10px;font-size:13px;display:none;font-family:Arial;}
+
+@media print{.topbar,.btn-group,.tab-btn,.status-btns,.no-print{display:none!important;}.tab-panel{display:block!important;padding:0;max-width:100%;}.card{box-shadow:none;border:1px solid #ccc;}}
+</style>
+</head>
+<body>
+
+<!-- ROLE MODAL -->
+<div class="modal-overlay" id="roleModal">
+  <div class="modal-box">
+    <h2>🔐 Chọn vai trò</h2>
+    <div class="role-option" onclick="setRole('accountant')"><h3>👤 Kế toán viên</h3><p>Upload chứng từ, chạy AI kiểm tra, gửi phê duyệt</p></div>
+    <div class="role-option" onclick="setRole('chief')"><h3>👔 Kế toán trưởng</h3><p>Xem kết quả, phê duyệt hoặc từ chối hồ sơ</p></div>
+  </div>
+</div>
+
+<!-- SETTINGS MODAL -->
+<div class="modal-overlay hidden" id="settingsModal">
+  <div class="modal-box" style="width:480px;">
+    <h2>⚙️ Cài đặt</h2>
+    <div style="background:var(--lgreen);border-radius:7px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--green);">
+      ✅ <strong>XML, PDF có text, OCR ảnh</strong> đều hoàn toàn <strong>miễn phí</strong> — không cần API key.<br>
+      Chỉ cần API key nếu muốn dùng Google Gemini cho ảnh scan chất lượng thấp.
+    </div>
+    <div class="form-group" style="margin-bottom:12px;">
+      <label>Google Gemini API Key <span style="font-size:10px;color:var(--gray);text-transform:none;font-weight:400">(tùy chọn – miễn phí 1.500 req/ngày tại aistudio.google.com)</span></label>
+      <div style="display:flex;gap:6px;">
+        <input type="password" id="geminiKeyInput" placeholder="AIza..." style="flex:1;border:1px solid var(--border);border-radius:5px;padding:8px 10px;font-family:monospace;font-size:12px;">
+        <button class="btn btn-outline btn-sm" onclick="document.getElementById('geminiKeyInput').type=document.getElementById('geminiKeyInput').type==='password'?'text':'password'">👁</button>
+      </div>
+    </div>
+    <div class="form-group" style="margin-bottom:16px;">
+      <label>Ngôn ngữ OCR (Tesseract)</label>
+      <select id="ocrLangSelect" style="border:1px solid var(--border);border-radius:5px;padding:8px 10px;">
+        <option value="vie+eng">Tiếng Việt + Tiếng Anh (Khuyên dùng)</option>
+        <option value="vie">Tiếng Việt</option>
+        <option value="eng">Tiếng Anh</option>
+      </select>
+    </div>
+    <div class="btn-group" style="margin-top:0;">
+      <button class="btn btn-primary" onclick="saveSettings()">💾 Lưu</button>
+      <button class="btn btn-outline" onclick="document.getElementById('settingsModal').classList.add('hidden')">Hủy</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <h1>🆓 AI Kiểm Tra Chứng Từ – Miễn Phí 100%</h1>
+  <div class="tabs">
+    <button class="tab-btn active" onclick="showTab('tab-scan',this)">📎 Scan</button>
+    <button class="tab-btn" onclick="showTab('tab-new',this)">📋 Checklist</button>
+    <button class="tab-btn" onclick="showTab('tab-list',this)">📂 Danh sách</button>
+    <button class="tab-btn" id="tabApproveBtn" onclick="showTab('tab-approve',this)">✅ Phê duyệt</button>
+    <button class="tab-btn" onclick="showTab('tab-stats',this)">📊 Thống kê</button>
+  </div>
+  <div class="topbar-right">
+    <button class="settings-btn" onclick="document.getElementById('settingsModal').classList.remove('hidden')">⚙️ Cài đặt</button>
+    <div class="user-badge" onclick="document.getElementById('roleModal').classList.remove('hidden')" id="userBadge">👤 Chọn vai trò</div>
+  </div>
+</div>
+
+<!-- ══ TAB SCAN ══ -->
+<div class="tab-panel active" id="tab-scan">
+  <div class="card">
+    <div class="card-header">📎 Upload bộ chứng từ</div>
+    <div class="card-body">
+      <div class="upload-zone" id="uploadZone" ondragover="ev(event,true)" ondragleave="ev(event,false)" ondrop="drop(event)">
+        <input type="file" id="fileInput" multiple accept=".pdf,.xml,.jpg,.jpeg,.png" onchange="handleFiles(this.files)">
+        <div class="icon">📂</div>
+        <h3>Kéo thả hoặc click để chọn file</h3>
+        <p>PDF hóa đơn điện tử &nbsp;|&nbsp; XML HĐĐT &nbsp;|&nbsp; Ảnh scan JPG/PNG</p>
+      </div>
+      <div id="fileList" style="margin-top:10px;"></div>
+    </div>
+  </div>
+
+  <!-- Method explanation -->
+  <div class="card">
+    <div class="card-header">🔄 Phương pháp xử lý – Tự động chọn miễn phí nhất</div>
+    <div class="card-body">
+      <div class="method-grid">
+        <div class="method-card active" id="mc-xml">
+          <div class="icon">🗂️</div>
+          <h4>XML HĐĐT</h4>
+          <p>Parse trực tiếp, đọc 100% dữ liệu</p>
+          <div style="margin-top:5px"><span class="free-tag">MIỄN PHÍ</span> <span style="font-size:10px;color:var(--green2)">⚡ Tức thì</span></div>
+        </div>
+        <div class="method-card" id="mc-pdf">
+          <div class="icon">📄</div>
+          <h4>PDF có text (PDF.js)</h4>
+          <p>Trích xuất text từ PDF điện tử</p>
+          <div style="margin-top:5px"><span class="free-tag">MIỄN PHÍ</span> <span style="font-size:10px;color:var(--green2)">⚡ ~2 giây</span></div>
+        </div>
+        <div class="method-card" id="mc-ocr">
+          <div class="icon">🔍</div>
+          <h4>OCR Tesseract (ảnh/scan)</h4>
+          <p>Nhận dạng chữ từ ảnh scan</p>
+          <div style="margin-top:5px"><span class="free-tag">MIỄN PHÍ</span> <span style="font-size:10px;color:var(--yellow)">⏱ ~10 giây</span></div>
+        </div>
+      </div>
+      <div style="margin-top:10px;font-size:12px;color:var(--gray);">
+        💡 <strong>Thứ tự ưu tiên:</strong> XML → PDF text → OCR → (Gemini nếu có key). App tự chọn phương pháp tốt nhất cho từng file.
+      </div>
+    </div>
+  </div>
+
+  <div id="processingArea"></div>
+  <div id="aiResultArea"></div>
+
+  <div id="startBtnArea" style="display:none;">
+    <div class="btn-group">
+      <button class="btn btn-primary" onclick="runProcess()" id="runBtn">🚀 Phân tích tự động</button>
+      <button class="btn btn-outline" onclick="clearAll()">🗑 Xóa file</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ TAB CHECKLIST ══ -->
+<div class="tab-panel" id="tab-new">
+  <div id="aiSummaryArea"></div>
+  <div class="card">
+    <div class="card-header">📄 Thông tin chứng từ <span id="dataSourceTag" style="margin-left:auto;"></span></div>
+    <div class="card-body">
+      <div class="form-grid cols3">
+        <div class="form-group"><label>Nhà cung cấp *</label><input id="f-ncc" placeholder="Tên công ty NCC"></div>
+        <div class="form-group"><label>MST nhà cung cấp *</label><input id="f-mst" placeholder="0123456789"></div>
+        <div class="form-group"><label>Số hóa đơn *</label><input id="f-hd" placeholder="AA/23E-0000123"></div>
+        <div class="form-group"><label>Ngày hóa đơn</label><input id="f-date" type="date"></div>
+        <div class="form-group"><label>Tổng giá trị (VNĐ)</label><input id="f-value" type="number" placeholder="0"></div>
+        <div class="form-group"><label>Tiền thuế VAT</label><input id="f-tax" type="number" placeholder="0"></div>
+        <div class="form-group"><label>Thuế suất</label><input id="f-taxrate" placeholder="10%"></div>
+        <div class="form-group"><label>Số HĐ / PO</label><input id="f-po" placeholder="HD2024/..."></div>
+        <div class="form-group"><label>Tài khoản hạch toán</label><input id="f-tk" placeholder="156, 641, 642..."></div>
+        <div class="form-group"><label>Kế toán thực hiện</label><input id="f-ktv" placeholder="Họ tên"></div>
+        <div class="form-group" style="grid-column:span 2"><label>Nội dung hàng hóa / dịch vụ</label><input id="f-desc" placeholder="Mua vật tư, dịch vụ..."></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-body" style="padding:12px 18px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <strong style="color:var(--blue)">Tiến độ kiểm tra</strong>
+        <span id="progressText" style="font-size:12px;color:var(--gray)">0 / 30 mục</span>
+      </div>
+      <div class="prog-wrap"><div class="prog-bar" id="progressBar" style="width:0%"></div></div>
+      <div style="display:flex;gap:14px;font-size:11px;margin-top:4px;flex-wrap:wrap;">
+        <span>✅ Đạt: <strong id="cntOk">0</strong></span>
+        <span>❌ Lỗi: <strong id="cntFail">0</strong></span>
+        <span>➖ N/A: <strong id="cntNa">0</strong></span>
+        <span>⚠️ Thủ công: <strong id="cntManual">0</strong></span>
+        <span style="color:#aaa">○ Chưa: <strong id="cntPending">30</strong></span>
+      </div>
+    </div>
+  </div>
+
+  <div id="checklistArea"></div>
+
+  <div class="btn-group no-print">
+    <button class="btn btn-outline" onclick="window.print()">🖨️ In / Xuất PDF</button>
+    <button class="btn btn-primary" onclick="saveRecord('draft')">💾 Lưu nháp</button>
+    <button class="btn btn-success" onclick="saveRecord('review')">📤 Gửi phê duyệt</button>
+    <button class="btn btn-outline" onclick="resetAll()" style="margin-left:auto">🔄 Làm mới</button>
+  </div>
+  <p id="saveMsg" style="margin-top:8px;font-size:12px;color:var(--green);"></p>
+</div>
+
+<!-- ══ TAB LIST ══ -->
+<div class="tab-panel" id="tab-list">
+  <div class="card">
+    <div class="card-header">📂 Danh sách hồ sơ</div>
+    <div class="card-body" style="padding:0;">
+      <table class="data-table">
+        <thead><tr><th style="padding:9px 12px">STT</th><th>NCC</th><th>Số HĐ</th><th>Ngày</th><th style="text-align:right">Giá trị</th><th>Phương pháp</th><th>Trạng thái</th><th style="text-align:center">Điểm</th><th>Thao tác</th></tr></thead>
+        <tbody id="listBody"></tbody>
+      </table>
+      <p id="listEmpty" style="text-align:center;color:var(--gray);padding:24px;">Chưa có hồ sơ nào.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ══ TAB APPROVE ══ -->
+<div class="tab-panel" id="tab-approve">
+  <div id="approveArea"></div>
+</div>
+
+<!-- ══ TAB STATS ══ -->
+<div class="tab-panel" id="tab-stats">
+  <div class="stats-grid" id="statsGrid"></div>
+  <div class="card"><div class="card-header">⚠️ Top 5 mục hay lỗi nhất</div><div class="card-body" id="statsDetail"></div></div>
+  <div class="card"><div class="card-header">📋 Hồ sơ gần đây</div>
+    <div class="card-body" style="padding:0;"><table class="data-table"><thead><tr><th style="padding:9px 12px">NCC</th><th>Số HĐ</th><th>Phương pháp</th><th>Trạng thái</th><th style="text-align:center">Điểm</th></tr></thead><tbody id="statsRecent"></tbody></table></div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════
+// CHECKLIST DATA
+// ════════════════════════════════════════════════════════
+const SECTIONS=[
+  {title:"I. HÓA ĐƠN GTGT / HÓA ĐƠN BÁN HÀNG",items:[
+    {id:1,text:"Hóa đơn điện tử theo NĐ 123/2020, có mã xác thực của cơ quan thuế (nếu HĐ có mã)",type:""},
+    {id:2,text:"Tra cứu tại hoadondientu.gdt.gov.vn – trạng thái KHÔNG bị hủy / thay thế / điều chỉnh",type:"tax"},
+    {id:3,text:"MST người bán hợp lệ; người bán không thuộc danh sách bỏ trốn / ngừng hoạt động",type:"tax"},
+    {id:4,text:"Tên, địa chỉ, MST người mua khớp chính xác với thông tin doanh nghiệp",type:""},
+    {id:5,text:"Tên hàng hóa/dịch vụ mô tả rõ ràng, đúng thực tế, có đơn vị tính và số lượng",type:""},
+    {id:6,text:"Kiểm tra số học: Đơn giá × SL = Thành tiền; Thành tiền × Thuế suất = Tiền thuế; Tổng khớp",type:""},
+    {id:7,text:"Thuế suất VAT đúng quy định (0% / 5% / 8% / 10% hoặc không chịu thuế)",type:"tax"},
+    {id:8,text:"Hóa đơn trong kỳ kế toán phù hợp; không kê khai quá hạn hoặc sai niên độ",type:""},
+  ]},
+  {title:"II. HỢP ĐỒNG / ĐƠN ĐẶT HÀNG (PO)",items:[
+    {id:9,text:"Có hợp đồng/PO ký kết trước giao dịch (bắt buộc ≥ 20 triệu đồng)",type:""},
+    {id:10,text:"Hợp đồng còn hiệu lực tại thời điểm phát sinh nghiệp vụ",type:""},
+    {id:11,text:"Nội dung, giá trị, thuế suất trong hợp đồng khớp với hóa đơn",type:""},
+    {id:12,text:"Hợp đồng có đủ chữ ký, con dấu hai bên; phụ lục đã ký (nếu có)",type:""},
+  ]},
+  {title:"III. BIÊN BẢN NGHIỆM THU / PHIẾU NHẬP KHO",items:[
+    {id:13,text:"Có Biên bản giao nhận / nghiệm thu dịch vụ ký bởi người có thẩm quyền hai bên",type:"req"},
+    {id:14,text:"Số lượng, chủng loại hàng hóa trong biên bản khớp hóa đơn và phiếu nhập kho",type:""},
+    {id:15,text:"Phiếu nhập kho (mua hàng tồn kho) đã lập đầy đủ: mã hàng, kho nhập, người nhận",type:""},
+    {id:16,text:"Biên bản nghiệm thu dịch vụ mô tả đủ kết quả bàn giao, thời gian thực hiện",type:""},
+  ]},
+  {title:"IV. CHỨNG TỪ THANH TOÁN",items:[
+    {id:17,text:"Thanh toán qua ngân hàng (bắt buộc với HĐ ≥ 20 triệu để khấu trừ VAT & chi phí hợp lý)",type:"tax"},
+    {id:18,text:"Ủy nhiệm chi / Giấy báo Nợ: đúng tên NCC, số tài khoản, số tiền, nội dung khớp HĐ",type:""},
+    {id:19,text:"Thanh toán tiền mặt (< 20 triệu): có Phiếu chi nội bộ, chữ ký người nhận và người duyệt",type:""},
+    {id:20,text:"Đã đối chiếu số dư công nợ NCC trước khi thanh toán (tránh trùng)",type:""},
+  ]},
+  {title:"V. PHÊ DUYỆT NỘI BỘ",items:[
+    {id:21,text:"Đề nghị mua hàng có đủ chữ ký: người đề nghị → trưởng bộ phận → BGĐ/KTT",type:"req"},
+    {id:22,text:"Giá trị trong hạn mức ngân sách đã duyệt; vượt hạn mức có phê duyệt bổ sung",type:""},
+    {id:23,text:"Nhà cung cấp trong danh sách NCC được phê duyệt (nếu doanh nghiệp có quy định)",type:""},
+  ]},
+  {title:"VI. NHẬP VÀO MISA",items:[
+    {id:24,text:"Xác định đúng tài khoản hạch toán (152, 153, 156, 211, 623, 641, 642, 811…)",type:"req"},
+    {id:25,text:"Xác định đúng kỳ kế toán ghi nhận; chứng từ trễ kỳ ghi rõ lý do",type:""},
+    {id:26,text:"Mã NCC đã có trong MISA; NCC mới đã tạo hồ sơ đầy đủ (tên, MST, tài khoản NH)",type:""},
+    {id:27,text:"Hóa đơn chưa kê khai trùng trong kỳ (tra số HĐ trên MISA)",type:"tax"},
+    {id:28,text:"Nhập đúng số HĐ, ngày HĐ, MST người bán vào phần mềm (kê khai thuế GTGT)",type:"tax"},
+    {id:29,text:"Đính kèm file hóa đơn điện tử (PDF/XML) vào chứng từ MISA – lưu trữ điện tử",type:"req"},
+    {id:30,text:"Sau nhập: kiểm tra bút toán Nợ/Có, số tiền thuế, số tiền gốc trước khi lưu/duyệt",type:""},
+  ]},
+];
+const ALL_ITEMS=SECTIONS.flatMap(s=>s.items);
+
+// ════════════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════════════
+let role=null, records=JSON.parse(localStorage.getItem('ct_free_v1')||'[]');
+let currentAnswers={}, editingId=null, uploadedFiles=[], dataSource=null;
+
+function getGeminiKey(){return localStorage.getItem('geminiKey')||'';}
+function getOcrLang(){return localStorage.getItem('ocrLang')||'vie+eng';}
+function saveSettings(){
+  localStorage.setItem('geminiKey',document.getElementById('geminiKeyInput').value.trim());
+  localStorage.setItem('ocrLang',document.getElementById('ocrLangSelect').value);
+  document.getElementById('settingsModal').classList.add('hidden');
+}
+
+function setRole(r){
+  role=r;
+  document.getElementById('roleModal').classList.add('hidden');
+  document.getElementById('userBadge').textContent=r==='chief'?'👔 Kế toán trưởng':'👤 Kế toán viên';
+  document.getElementById('tabApproveBtn').style.display=r==='chief'?'':'none';
+}
+function showTab(id,btn){
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if(btn) btn.classList.add('active');
+  if(id==='tab-list') renderList();
+  if(id==='tab-approve') renderApprove();
+  if(id==='tab-stats') renderStats();
+}
+
+// ════════════════════════════════════════════════════════
+// FILE UPLOAD
+// ════════════════════════════════════════════════════════
+function ev(e,over){e.preventDefault();document.getElementById('uploadZone').classList.toggle('drag',over);}
+function drop(e){e.preventDefault();document.getElementById('uploadZone').classList.remove('drag');handleFiles(e.dataTransfer.files);}
+function handleFiles(files){
+  for(const f of files) if(!uploadedFiles.find(x=>x.name===f.name&&x.size===f.size)) uploadedFiles.push(f);
+  renderFileList();
+}
+function clearAll(){uploadedFiles=[];renderFileList();document.getElementById('processingArea').innerHTML='';document.getElementById('aiResultArea').innerHTML='';}
+function renderFileList(){
+  const el=document.getElementById('fileList'),btn=document.getElementById('startBtnArea');
+  if(!uploadedFiles.length){el.innerHTML='';btn.style.display='none';return;}
+  const icons={pdf:'📄',xml:'🗂️',jpg:'🖼️',jpeg:'🖼️',png:'🖼️'};
+  const methods={pdf:'PDF.js',xml:'XML',jpg:'OCR',jpeg:'OCR',png:'OCR'};
+  el.innerHTML=uploadedFiles.map((f,i)=>{
+    const ext=f.name.split('.').pop().toLowerCase();
+    return `<span class="file-badge">${icons[ext]||'📎'} ${f.name} <span class="method-badge mb-${ext==='xml'?'xml':ext==='pdf'?'pdf':'ocr'}" style="padding:1px 6px">${methods[ext]||'OCR'}</span><span class="rm" onclick="removeFile(${i})">✕</span></span>`;
+  }).join('');
+  btn.style.display='block';
+}
+function removeFile(i){uploadedFiles.splice(i,1);renderFileList();}
+
+// ════════════════════════════════════════════════════════
+// XML PARSER
+// ════════════════════════════════════════════════════════
+function parseXml(xmlText){
+  const doc=new DOMParser().parseFromString(xmlText,'text/xml');
+  const get=(...tags)=>{for(const t of tags){const e=doc.querySelector(t)||[...doc.getElementsByTagName('*')].find(x=>x.localName===t);if(e&&e.textContent.trim())return e.textContent.trim();}return '';};
+  const f={
+    ncc:get('NBan > Ten','TenNBan','SellerName'),
+    mst_ncc:get('NBan > MST','MSTNBan','SellerTaxCode'),
+    ten_mua:get('NMua > Ten','TenNMua','BuyerName'),
+    mst_mua:get('NMua > MST','MSTNMua','BuyerTaxCode'),
+    so_hd:get('SHDon','InvoiceNumber','SoHoaDon'),
+    ngay_hd:get('NLap','InvoiceDate','NgayLap'),
+    gia_tri:get('TgTCThue','TotalAmountWithoutTax'),
+    tien_thue:get('TgTThue','TotalTaxAmount'),
+    tong_tien:get('TgTTTBSo','TotalPaymentAmount'),
+    thue_suat:get('TSuat','TaxRate'),
+    ma_cqt:get('MCQTCap','TaxAuthorityCode'),
+    ky_hieu:get('KHHDon','InvoiceSeries'),
+    mau_so:get('MHDon','InvoiceForm'),
+  };
+  // Goods
+  const items=[...doc.querySelectorAll('HHDVu HHDVu0, HHDVu Item, ChiTietHHDV')];
+  f.ten_hang=items.map(it=>{
+    const ten=it.querySelector('THHDVu,ItemName,TenHang')?.textContent||'';
+    const sl=it.querySelector('SLuong,Quantity,SoLuong')?.textContent||'';
+    return ten+(sl?' × '+sl:'');
+  }).join('; ');
+
+  // Evaluate checklist
+  const c={};
+  c[1]={status:'ok',reason:`HĐĐT${f.ma_cqt?', mã CQT: '+f.ma_cqt:''}. Mẫu: ${f.mau_so||'—'}, Ký hiệu: ${f.ky_hieu||'—'}`,source:'xml'};
+  c[2]={status:'manual',reason:`Tra cứu thủ công: hoadondientu.gdt.gov.vn – Số HĐ ${f.so_hd}`,source:'xml'};
+  c[3]={status:'manual',reason:`Kiểm tra NCC "${f.ncc}" (MST: ${f.mst_ncc}) tại cổng thuế`,source:'xml'};
+  c[4]={status:f.mst_mua?'ok':'fail',reason:f.mst_mua?`Người mua: ${f.ten_mua}, MST: ${f.mst_mua}`:'Không tìm thấy MST người mua trong XML',source:'xml'};
+  c[5]={status:f.ten_hang?'ok':'fail',reason:f.ten_hang?`Hàng hóa/DV: ${f.ten_hang.substring(0,100)}`:'Không tìm thấy chi tiết hàng hóa',source:'xml'};
+  const gt=parseFloat(f.gia_tri)||0,tt=parseFloat(f.tien_thue)||0,total=parseFloat(f.tong_tien)||0;
+  if(gt>0&&tt>0&&total>0){const diff=Math.abs(gt+tt-total);c[6]={status:diff<10?'ok':'fail',reason:diff<10?`Số học khớp: ${gt.toLocaleString('vi-VN')} + ${tt.toLocaleString('vi-VN')} = ${total.toLocaleString('vi-VN')} đ`:`Tổng không khớp: kỳ vọng ${(gt+tt).toLocaleString('vi-VN')}, thực tế ${total.toLocaleString('vi-VN')} đ`,source:'xml'};}
+  else{c[6]={status:'manual',reason:'Thiếu dữ liệu số để kiểm tra tự động',source:'xml'};}
+  const ts=parseFloat(f.thue_suat)||0;
+  c[7]={status:[0,5,8,10].includes(ts)||!f.thue_suat?'ok':'fail',reason:`Thuế suất VAT: ${f.thue_suat||'Không xác định'}`,source:'xml'};
+  c[8]={status:'ok',reason:`Ngày HĐ: ${f.ngay_hd}`,source:'xml'};
+  for(let i=9;i<=30;i++) c[i]={status:'manual',reason:'Cần kiểm tra chứng từ kèm theo / thao tác trên MISA',source:'xml'};
+  c[28]={status:'ok',reason:`Dữ liệu sẵn sàng nhập MISA: số "${f.so_hd}", ngày "${f.ngay_hd}", MST "${f.mst_ncc}"`,source:'xml'};
+  return {fields:{ncc:f.ncc,mst:f.mst_ncc,hd:f.so_hd,date:normDate(f.ngay_hd),value:parseFloat(f.tong_tien)||'',tax:parseFloat(f.tien_thue)||'',taxrate:f.thue_suat?f.thue_suat+'%':'',desc:f.ten_hang},checks:c};
+}
+
+// ════════════════════════════════════════════════════════
+// PDF.JS TEXT EXTRACTION
+// ════════════════════════════════════════════════════════
+async function extractPdfText(file){
+  const pdfjsLib=window['pdfjs-dist/build/pdf'];
+  pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  const buf=await file.arrayBuffer();
+  const pdf=await pdfjsLib.getDocument({data:buf}).promise;
+  let text='';
+  for(let i=1;i<=Math.min(pdf.numPages,5);i++){
+    const page=await pdf.getPage(i);
+    const content=await page.getTextContent();
+    // Reconstruct text preserving approximate layout
+    const items=content.items;
+    let lastY=null;
+    for(const item of items){
+      if(lastY!==null&&Math.abs(item.transform[5]-lastY)>5) text+='\n';
+      text+=item.str+' ';
+      lastY=item.transform[5];
+    }
+    text+='\n---\n';
+  }
+  return text;
+}
+
+// ════════════════════════════════════════════════════════
+// TESSERACT OCR
+// ════════════════════════════════════════════════════════
+async function ocrImage(file, onProgress){
+  return new Promise((resolve,reject)=>{
+    Tesseract.recognize(file, getOcrLang(), {
+      logger: m=>{
+        if(m.status==='recognizing text'&&onProgress) onProgress(Math.round(m.progress*100));
+      }
+    }).then(({data:{text}})=>resolve(text)).catch(reject);
+  });
+}
+
+// ════════════════════════════════════════════════════════
+// INVOICE TEXT PARSER (regex – works for both PDF and OCR output)
+// ════════════════════════════════════════════════════════
+function parseInvoiceText(text){
+  const t=text.replace(/\s+/g,' ');
+  const find=(patterns,flags='i')=>{for(const p of patterns){const m=t.match(new RegExp(p,flags));if(m)return m[1]?.trim();}return '';};
+  const findNum=(patterns)=>{for(const p of patterns){const m=t.match(new RegExp(p,'i'));if(m){const n=m[1].replace(/[,\.\s]/g,'').replace(/đ|vnd/gi,'');if(n&&!isNaN(n))return parseInt(n,10);}}return 0;};
+
+  // Seller & buyer – find all MST occurrences to split seller/buyer
+  const allMST=[...t.matchAll(/(?:m[aã][\s]*s[oố][\s]*thu[eế]|mst|tax[\s]*code)[\s:]*([0-9]{10,13})/gi)].map(m=>m[1]);
+
+  const fields={
+    ncc: find([
+      'đ[oơ]n vị bán hàng[\\s:]+([^\\n\\r,;]{5,80})',
+      'ng[ưu][oờ]i bán hàng[\\s:]+([^\\n\\r,;]{5,80})',
+      'công ty bán[\\s:]+([^\\n\\r,;]{5,80})',
+    ]),
+    mst_ncc: allMST[0]||'',
+    ten_mua: find([
+      'đ[oơ]n vị mua hàng[\\s:]+([^\\n\\r,;]{5,80})',
+      'ng[ưu][oờ]i mua hàng[\\s:]+([^\\n\\r,;]{5,80})',
+      'tên đ[oơ]n vị[\\s:]+([^\\n\\r,;]{5,80})',
+    ]),
+    mst_mua: allMST[1]||'',
+    so_hd: find([
+      'k[yý] hi[eệ]u[\\s:]+([A-Z0-9\\/]{4,15})[^\\n]*s[oố][\\s:]+([0-9]{5,10})',
+      's[oố] h[oó]a đ[oơ]n[\\s:]+([A-Z0-9\\/\\-]{4,20})',
+      's[oố][\\s:]+([0-9]{5,10})',
+      'no\\.?[\\s:]+([A-Z0-9\\/\\-]{4,20})',
+    ]),
+    ngay_hd: findDate(t),
+    thue_suat: find(['thu[eế] su[aâ]t[\\s:vat]*[\\s:]+([0-9]+)\\s*%','vat[\\s:]+([0-9]+)\\s*%'])+'%',
+    ten_hang: extractGoods(t),
+  };
+
+  const gt=findNum(['c[oộ]ng ti[eề]n hàng[^0-9]*([0-9][0-9,\\.]+)','t[oổ]ng ti[eề]n ch[uư]a thu[eế][^0-9]*([0-9][0-9,\\.]+)','amount before tax[^0-9]*([0-9][0-9,\\.]+)']);
+  const tt=findNum(['ti[eề]n thu[eế][\\s]+([0-9][0-9,\\.]+)','total tax[^0-9]*([0-9][0-9,\\.]+)']);
+  const total=findNum(['t[oổ]ng c[oộ]ng ti[eề]n thanh to[aá]n[^0-9]*([0-9][0-9,\\.]+)','t[oổ]ng ti[eề]n thanh to[aá]n[^0-9]*([0-9][0-9,\\.]+)','total payment[^0-9]*([0-9][0-9,\\.]+)']);
+
+  // Confidence score (how many fields found)
+  let conf=0;
+  if(fields.ncc) conf++;if(fields.mst_ncc) conf++;if(fields.so_hd) conf++;
+  if(fields.ngay_hd) conf++;if(gt) conf++;if(tt) conf++;if(total) conf++;
+
+  // Build checklist evaluations
+  const c={};
+  const hasHDDT=/h[oó]a đ[oơ]n đi[eệ]n t[uử]|hđđt|e-invoice/i.test(t);
+  c[1]={status:hasHDDT?'ok':'manual',reason:hasHDDT?'Phát hiện hóa đơn điện tử trong văn bản':'Không xác định rõ loại hóa đơn – kiểm tra thủ công',source:'parse'};
+  c[2]={status:'manual',reason:`Tra cứu thủ công: hoadondientu.gdt.gov.vn – Số HĐ: ${fields.so_hd||'cần xác nhận'}`,source:'parse'};
+  c[3]={status:'manual',reason:`Kiểm tra MST NCC ${fields.mst_ncc||'—'} tại cổng thuế`,source:'parse'};
+  c[4]={status:fields.mst_mua?'ok':'fail',reason:fields.mst_mua?`MST người mua: ${fields.mst_mua}`:'Không tìm thấy MST người mua',source:'parse'};
+  c[5]={status:fields.ten_hang?'ok':'manual',reason:fields.ten_hang?`Hàng hóa: ${fields.ten_hang.substring(0,100)}`:'Không trích xuất được chi tiết hàng hóa',source:'parse'};
+  if(gt&&tt&&total){const d=Math.abs(gt+tt-total);c[6]={status:d<1000?'ok':'fail',reason:d<1000?`Số học khớp: ${gt.toLocaleString('vi-VN')} + ${tt.toLocaleString('vi-VN')} = ${total.toLocaleString('vi-VN')}`:`Lệch ${d.toLocaleString('vi-VN')} đ – kiểm tra lại`,source:'parse'};}
+  else{c[6]={status:'manual',reason:'Không đủ dữ liệu số để kiểm tra tự động',source:'parse'};}
+  const ts=parseFloat(fields.thue_suat)||0;
+  c[7]={status:[0,5,8,10].includes(ts)||fields.thue_suat==='%'?'ok':'fail',reason:`Thuế suất VAT: ${fields.thue_suat||'Không xác định'}`,source:'parse'};
+  c[8]={status:fields.ngay_hd?'ok':'manual',reason:fields.ngay_hd?`Ngày HĐ: ${fields.ngay_hd}`:'Không xác định được ngày hóa đơn',source:'parse'};
+  for(let i=9;i<=30;i++) c[i]={status:'manual',reason:'Cần kiểm tra chứng từ kèm theo',source:'parse'};
+  c[28]={status:fields.so_hd?'ok':'manual',reason:fields.so_hd?`Sẵn sàng nhập MISA: số "${fields.so_hd}", MST "${fields.mst_ncc}"`:'Số HĐ chưa trích xuất được – cần nhập thủ công',source:'parse'};
+  if(fields.ten_hang) c[29]={status:'ok',reason:'File hóa đơn đã upload – đính kèm vào MISA',source:'parse'};
+
+  return {
+    fields:{ncc:fields.ncc,mst:fields.mst_ncc,hd:fields.so_hd,date:normDate(fields.ngay_hd),value:total||'',tax:tt||'',taxrate:fields.thue_suat,desc:fields.ten_hang},
+    checks:c, confidence:conf/7
+  };
+}
+
+function findDate(t){
+  let m;
+  m=t.match(/ngày\s+(\d{1,2})\s+tháng\s+(\d{1,2})\s+năm\s+(\d{4})/i);
+  if(m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+  m=t.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+  if(m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+  m=t.match(/(\d{4})[\/\-](\d{2})[\/\-](\d{2})/);
+  if(m) return m[0];
+  return '';
+}
+
+function extractGoods(t){
+  const lines=t.split(/\n/);
+  const goods=[];
+  let inTable=false;
+  for(const line of lines){
+    if(/tên hàng|hàng hóa.*dịch vụ|description|item name/i.test(line)){inTable=true;continue;}
+    if(inTable&&/cộng|tổng|subtotal|total/i.test(line)) break;
+    if(inTable&&line.trim().length>5&&!/^\s*\d+\s*$/.test(line.trim())) goods.push(line.trim().substring(0,60));
+    if(goods.length>=5) break;
+  }
+  return goods.join('; ');
+}
+
+// ════════════════════════════════════════════════════════
+// GEMINI API (optional)
+// ════════════════════════════════════════════════════════
+async function callGemini(file){
+  const key=getGeminiKey();
+  if(!key) throw new Error('Chưa có Gemini API key');
+  const b64=await fileToB64(file);
+  const ext=file.name.split('.').pop().toLowerCase();
+  const mime=ext==='pdf'?'application/pdf':ext==='png'?'image/png':'image/jpeg';
+  const prompt=`Bạn là chuyên gia kế toán Việt Nam. Phân tích hóa đơn và trả về JSON THUẦN TÚY (không markdown):
+{"fields":{"ncc":"","mst_ncc":"","ten_mua":"","mst_mua":"","so_hd":"","ngay_hd":"YYYY-MM-DD","gia_tri":0,"tien_thue":0,"tong_tien":0,"thue_suat":"10%","ten_hang":""},"checks":{"1":{"status":"ok/fail/manual","reason":""},"2":{"status":"manual","reason":"Tra cứu tại hoadondientu.gdt.gov.vn"},"3":{"status":"manual","reason":"Kiểm tra NCC tại cổng thuế"},"4":{"status":"ok/fail","reason":""},"5":{"status":"ok/fail","reason":""},"6":{"status":"ok/fail","reason":"kiểm tra số học cụ thể"},"7":{"status":"ok/fail","reason":"thuế suất: X%"},"8":{"status":"ok/manual","reason":""}}}
+Chỉ đánh giá mục 1-8 từ hóa đơn. Các mục 9-30 để "manual".`;
+  const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`,{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({contents:[{parts:[{inlineData:{mimeType:mime,data:b64}},{text:prompt}]}]})
+  });
+  if(!res.ok) throw new Error('Gemini API error '+res.status);
+  const data=await res.json();
+  const raw=data.candidates[0].content.parts[0].text.trim().replace(/^```json\n?/,'').replace(/\n?```$/,'');
+  const parsed=JSON.parse(raw);
+  // Fill remaining checks as manual
+  for(let i=9;i<=30;i++) if(!parsed.checks[i]) parsed.checks[i]={status:'manual',reason:'Cần kiểm tra chứng từ kèm theo'};
+  for(const [k,v] of Object.entries(parsed.checks)) parsed.checks[k]={...v,source:'gemini'};
+  return {fields:{ncc:parsed.fields.ncc,mst:parsed.fields.mst_ncc,hd:parsed.fields.so_hd,date:normDate(parsed.fields.ngay_hd),value:parsed.fields.tong_tien,tax:parsed.fields.tien_thue,taxrate:parsed.fields.thue_suat,desc:parsed.fields.ten_hang},checks:parsed.checks};
+}
+
+function fileToB64(f){return new Promise((r,e)=>{const rd=new FileReader();rd.onload=ev=>r(ev.target.result.split(',')[1]);rd.onerror=e;rd.readAsDataURL(f);});}
+function normDate(d){if(!d)return '';if(/^\d{4}-\d{2}-\d{2}$/.test(d))return d;const m=d.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);if(m)return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;return d;}
+
+// ════════════════════════════════════════════════════════
+// MAIN PROCESS ORCHESTRATOR
+// ════════════════════════════════════════════════════════
+async function runProcess(){
+  if(!uploadedFiles.length){alert('Vui lòng upload ít nhất 1 file.');return;}
+  const procArea=document.getElementById('processingArea');
+  const resultArea=document.getElementById('aiResultArea');
+  document.getElementById('runBtn').disabled=true;
+
+  let mergedFields={}, mergedChecks={}, methods=[];
+
+  try{
+    for(let fi=0;fi<uploadedFiles.length;fi++){
+      const file=uploadedFiles[fi];
+      const ext=file.name.split('.').pop().toLowerCase();
+      let result=null, method='';
+
+      showProc(procArea, file.name, fi+1, uploadedFiles.length, 'Đang xử lý...');
+
+      if(ext==='xml'){
+        // ── Method 1: XML parse (free, instant) ──
+        method='xml';
+        showProc(procArea,file.name,fi+1,uploadedFiles.length,'📂 Đọc XML...');
+        result=parseXml(await file.text());
+
+      }else if(ext==='pdf'){
+        // ── Method 2: PDF.js text extraction (free) ──
+        showProc(procArea,file.name,fi+1,uploadedFiles.length,'📄 Trích xuất text từ PDF...');
+        const pdfText=await extractPdfText(file);
+        const hasText=pdfText.replace(/\s/g,'').length>200;
+
+        if(hasText){
+          method='pdf-text';
+          result=parseInvoiceText(pdfText);
+          if(result.confidence<0.4&&getGeminiKey()){
+            // Low confidence → try Gemini
+            showProc(procArea,file.name,fi+1,uploadedFiles.length,'🔮 Độ chính xác thấp – thử Gemini...');
+            try{result=await callGemini(file);method='gemini';}catch(e){/* keep pdf result */}
+          }
+        }else{
+          // Scanned PDF → OCR or Gemini
+          if(getGeminiKey()){
+            showProc(procArea,file.name,fi+1,uploadedFiles.length,'🔮 PDF scan – dùng Gemini...');
+            try{result=await callGemini(file);method='gemini';}catch(e){
+              result=await runTesseract(file,procArea,file.name,fi+1,uploadedFiles.length);
+              method='ocr';
+            }
+          }else{
+            result=await runTesseract(file,procArea,file.name,fi+1,uploadedFiles.length);
+            method='ocr';
+          }
+        }
+      }else{
+        // ── Method 3: Tesseract OCR for images ──
+        if(getGeminiKey()){
+          showProc(procArea,file.name,fi+1,uploadedFiles.length,'🔮 Phân tích ảnh với Gemini...');
+          try{result=await callGemini(file);method='gemini';}catch(e){
+            result=await runTesseract(file,procArea,file.name,fi+1,uploadedFiles.length);
+            method='ocr';
+          }
+        }else{
+          result=await runTesseract(file,procArea,file.name,fi+1,uploadedFiles.length);
+          method='ocr';
+        }
+      }
+
+      if(result){
+        methods.push(method);
+        mergedFields={...mergedFields,...result.fields};
+        for(const [k,v] of Object.entries(result.checks||{})){
+          if(!mergedChecks[k]||v.status!=='manual') mergedChecks[k]=v;
+        }
+      }
+    }
+
+    // Apply results
+    dataSource=methods.includes('gemini')?'gemini':methods.includes('pdf-text')?'pdf':methods.includes('xml')?'xml':'ocr';
+    currentAnswers={};
+    for(const [k,v] of Object.entries(mergedChecks)) currentAnswers[parseInt(k)]=v;
+    fillForm(mergedFields);
+    procArea.innerHTML='';
+    resultArea.innerHTML=buildBanner(methods,Object.values(currentAnswers));
+
+    // Switch to checklist tab
+    document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.getElementById('tab-new').classList.add('active');
+    document.querySelectorAll('.tab-btn')[1].classList.add('active');
+    renderChecklist();
+    renderAISummary();
+
+  }catch(e){
+    procArea.innerHTML=`<div class="card"><div class="card-body" style="padding:16px;color:var(--red);"><strong>❌ Lỗi: ${e.message}</strong><p style="font-size:12px;color:var(--gray);margin-top:6px;">File XML và PDF có text không cần API key. Kiểm tra lại file upload.</p></div></div>`;
+  }
+  document.getElementById('runBtn').disabled=false;
+}
+
+async function runTesseract(file,procArea,fname,idx,total){
+  showProc(procArea,fname,idx,total,'🔍 OCR đang nhận dạng chữ...',true);
+  const text=await ocrImage(file,(pct)=>{
+    const bar=document.getElementById('ocrBar');
+    const lbl=document.getElementById('ocrLbl');
+    if(bar) bar.style.width=pct+'%';
+    if(lbl) lbl.textContent=`Tesseract OCR: ${pct}%`;
+  });
+  return parseInvoiceText(text);
+}
+
+function showProc(el,fname,idx,total,msg,showOcr=false){
+  el.innerHTML=`<div class="proc-card">
+    <div class="spinner"></div>
+    <div style="font-weight:700;margin-bottom:4px">File ${idx}/${total}: ${fname}</div>
+    <div style="font-size:12px;opacity:.85">${msg}</div>
+    ${showOcr?`<div style="width:300px;margin:12px auto 0;"><div class="ocr-progress"><div class="ocr-bar" id="ocrBar" style="width:0%"></div></div><div class="ocr-label" id="ocrLbl">Đang khởi động Tesseract...</div></div>`:''}
+  </div>`;
+}
+
+function buildBanner(methods,answers){
+  const ok=answers.filter(x=>x.status==='ok').length;
+  const fail=answers.filter(x=>x.status==='fail').length;
+  const manual=answers.filter(x=>x.status==='manual').length;
+  const methodNames={xml:'🗂️ XML','pdf-text':'📄 PDF.js','ocr':'🔍 Tesseract OCR',gemini:'🔮 Gemini'};
+  const src=[...new Set(methods)].map(m=>methodNames[m]||m).join(' + ');
+  return `<div style="background:linear-gradient(135deg,#1F4E79,#2E75B6);color:#fff;border-radius:10px;padding:14px 20px;margin-bottom:14px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+    <span style="font-size:24px">✅</span>
+    <div style="flex:1"><div style="font-weight:700">Phân tích hoàn tất – ${src}</div>
+    <div style="font-size:12px;opacity:.85;margin-top:2px">Miễn phí 100% – không tốn API</div></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <span style="background:#E8F5E9;color:#2E7D32;padding:3px 10px;border-radius:16px;font-size:12px;font-weight:700">✅ ${ok} đạt</span>
+      ${fail?`<span style="background:#FCE4D6;color:#C00000;padding:3px 10px;border-radius:16px;font-size:12px;font-weight:700">❌ ${fail} lỗi</span>`:''}
+      <span style="background:#FFF9E6;color:#BF8F00;padding:3px 10px;border-radius:16px;font-size:12px;font-weight:700">⚠ ${manual} thủ công</span>
+    </div>
+  </div>`;
+}
+
+// ════════════════════════════════════════════════════════
+// FORM & CHECKLIST
+// ════════════════════════════════════════════════════════
+function fillForm(f){
+  const ids={ncc:'f-ncc',mst:'f-mst',hd:'f-hd',date:'f-date',value:'f-value',tax:'f-tax',taxrate:'f-taxrate',desc:'f-desc'};
+  for(const [k,id] of Object.entries(ids)){if(f[k]){document.getElementById(id).value=f[k];document.getElementById(id).classList.add('ai-filled');}}
+  const srcNames={xml:'XML HĐĐT',pdf:'PDF.js','ocr':'OCR Tesseract',gemini:'Gemini AI',manual:''};
+  if(dataSource&&dataSource!=='manual')
+    document.getElementById('dataSourceTag').innerHTML=`<span class="method-badge mb-${dataSource==='pdf'?'pdf':dataSource==='xml'?'xml':dataSource==='ocr'?'ocr':'gemini'}" style="font-size:12px">✓ Tự động điền từ ${srcNames[dataSource]||dataSource}</span>`;
+}
+
+function renderAISummary(){
+  const ok=Object.values(currentAnswers).filter(x=>x.status==='ok').length;
+  const fail=Object.values(currentAnswers).filter(x=>x.status==='fail').length;
+  const manual=Object.values(currentAnswers).filter(x=>x.status==='manual').length;
+  const score=Math.round(ok/Math.max(1,30-manual)*100);
+  document.getElementById('aiSummaryArea').innerHTML=`<div class="ai-summary">
+    <div class="ai-stat ok"><div class="num">${ok}</div><div class="lbl">Xác nhận đạt</div></div>
+    <div class="ai-stat fail"><div class="num">${fail}</div><div class="lbl">Phát hiện lỗi</div></div>
+    <div class="ai-stat manual"><div class="num">${manual}</div><div class="lbl">Cần thủ công</div></div>
+    <div class="ai-stat score"><div class="num">${score}%</div><div class="lbl">Điểm sơ bộ</div></div>
+  </div>`;
+}
+
+function renderChecklist(){
+  let html='';
+  SECTIONS.forEach(sec=>{
+    html+=`<div class="section-hdr">📌 ${sec.title}</div><div class="card"><div class="card-body" style="padding:0;"><table class="check-table"><thead><tr><th>STT</th><th>Nội dung kiểm tra</th><th>Kết quả</th><th>Override</th><th>Ghi chú</th></tr></thead><tbody>`;
+    sec.items.forEach(item=>{
+      const cls=item.type==='tax'?'tax':item.type==='req'?'req':'';
+      const a=currentAnswers[item.id]||{};
+      const st=a.status||'pending';
+      const srcLabels={xml:'XML',parse:'PDF',ocr:'OCR',gemini:'AI','pdf-text':'PDF'};
+      const srcHtml=a.source?`<div style="font-size:9px;text-align:center;opacity:.6;margin-top:2px">${srcLabels[a.source]||a.source}</div>`:'';
+      const reasonHtml=a.reason?`<div class="ai-reason ${st==='fail'?'fail':st==='manual'?'manual':''}">${a.reason}</div>`:'';
+      html+=`<tr class="${cls}">
+        <td>${item.id}</td>
+        <td>${item.text}${item.type==='tax'?'<span style="color:#BF8F00;font-size:10px;margin-left:3px">⚠ Thuế</span>':item.type==='req'?'<span style="color:#375623;font-size:10px;margin-left:3px">✔ Bắt buộc</span>':''}${reasonHtml}</td>
+        <td style="text-align:center"><div class="ai-ind ${st}">${{ok:'✅ Đạt',fail:'❌ Lỗi',manual:'⚠ Thủ công',na:'➖ N/A',pending:'○ Chưa'}[st]||'○'}</div>${srcHtml}</td>
+        <td><div class="status-btns">
+          <button class="s-btn ok ${a.userOverride==='ok'?'active':''}" onclick="ovr(${item.id},'ok',this)">✓</button>
+          <button class="s-btn fail ${a.userOverride==='fail'?'active':''}" onclick="ovr(${item.id},'fail',this)">✗</button>
+          <button class="s-btn na ${a.userOverride==='na'?'active':''}" onclick="ovr(${item.id},'na',this)">N/A</button>
+        </div></td>
+        <td><textarea class="note-input" rows="1" onchange="setNote(${item.id},this.value)" placeholder="Ghi chú...">${a.note||''}</textarea></td>
+      </tr>`;
+    });
+    html+=`</tbody></table></div></div>`;
+  });
+  document.getElementById('checklistArea').innerHTML=html;
+  updateProgress();
+}
+
+function ovr(id,val,btn){
+  if(!currentAnswers[id]) currentAnswers[id]={};
+  const prev=currentAnswers[id].userOverride;
+  currentAnswers[id].userOverride=(prev===val)?null:val;
+  btn.parentElement.querySelectorAll('.s-btn').forEach(b=>b.classList.remove('active'));
+  if(currentAnswers[id].userOverride) btn.classList.add('active');
+  updateProgress();
+}
+function setNote(id,val){if(!currentAnswers[id])currentAnswers[id]={};currentAnswers[id].note=val;}
+function effSt(id){const a=currentAnswers[id];if(!a)return 'pending';return a.userOverride||a.status||'pending';}
+function updateProgress(){
+  let ok=0,fail=0,na=0,manual=0,pend=0;
+  for(let i=1;i<=30;i++){const s=effSt(i);if(s==='ok')ok++;else if(s==='fail')fail++;else if(s==='na')na++;else if(s==='manual')manual++;else pend++;}
+  const done=ok+fail+na+manual;
+  document.getElementById('progressBar').style.width=(done/30*100)+'%';
+  document.getElementById('progressText').textContent=done+' / 30 mục';
+  document.getElementById('cntOk').textContent=ok;
+  document.getElementById('cntFail').textContent=fail;
+  document.getElementById('cntNa').textContent=na;
+  document.getElementById('cntManual').textContent=manual;
+  document.getElementById('cntPending').textContent=pend;
+}
+
+// ════════════════════════════════════════════════════════
+// SAVE / LOAD
+// ════════════════════════════════════════════════════════
+function calcScore(){let ok=0,excl=0;for(let i=1;i<=30;i++){const s=effSt(i);if(s==='ok')ok++;if(s==='na'||s==='manual')excl++;}return Math.round(ok/Math.max(1,30-excl)*100);}
+function saveRecord(status){
+  const ncc=document.getElementById('f-ncc').value.trim(),hd=document.getElementById('f-hd').value.trim();
+  if(!ncc||!hd){alert('Vui lòng nhập Nhà cung cấp và Số hóa đơn.');return;}
+  let ok=0,fail=0,na=0,manual=0;
+  for(let i=1;i<=30;i++){const s=effSt(i);if(s==='ok')ok++;else if(s==='fail')fail++;else if(s==='na')na++;else if(s==='manual')manual++;}
+  const rec={id:editingId||Date.now(),ncc,mst:document.getElementById('f-mst').value,hd,date:document.getElementById('f-date').value,value:document.getElementById('f-value').value,tax:document.getElementById('f-tax').value,taxrate:document.getElementById('f-taxrate').value,po:document.getElementById('f-po').value,ktv:document.getElementById('f-ktv').value,tk:document.getElementById('f-tk').value,desc:document.getElementById('f-desc').value,answers:JSON.parse(JSON.stringify(currentAnswers)),status,score:calcScore(),ok,fail,na,manual,dataSource:dataSource||'manual',createdAt:new Date().toLocaleString('vi-VN'),approvedBy:null,approvedAt:null,rejectReason:null};
+  if(editingId){const idx=records.findIndex(r=>r.id===editingId);if(idx!==-1){rec.approvedBy=records[idx].approvedBy;rec.approvedAt=records[idx].approvedAt;rec.rejectReason=records[idx].rejectReason;records[idx]=rec;}editingId=null;}
+  else records.push(rec);
+  localStorage.setItem('ct_free_v1',JSON.stringify(records));
+  document.getElementById('saveMsg').textContent=status==='review'?'✅ Đã gửi phê duyệt!':'💾 Đã lưu nháp!';
+  setTimeout(()=>document.getElementById('saveMsg').textContent='',3000);
+}
+function resetAll(){
+  if(!confirm('Làm mới toàn bộ?'))return;
+  currentAnswers={};dataSource=null;editingId=null;
+  ['f-ncc','f-mst','f-hd','f-date','f-value','f-tax','f-taxrate','f-po','f-ktv','f-tk','f-desc'].forEach(id=>{const el=document.getElementById(id);el.value='';el.classList.remove('ai-filled');});
+  document.getElementById('aiSummaryArea').innerHTML='';
+  document.getElementById('dataSourceTag').innerHTML='';
+  document.getElementById('aiResultArea').innerHTML='';
+  renderChecklist();
+}
+
+// ════════════════════════════════════════════════════════
+// LIST
+// ════════════════════════════════════════════════════════
+function renderList(){
+  const tbody=document.getElementById('listBody'),empty=document.getElementById('listEmpty');
+  if(!records.length){tbody.innerHTML='';empty.style.display='block';return;}
+  empty.style.display='none';
+  const sL={draft:'Nháp',review:'Chờ duyệt',approved:'Đã duyệt',rejected:'Từ chối'};
+  const sB={draft:'badge-pending',review:'badge-review',approved:'badge-approved',rejected:'badge-rejected'};
+  const mL={xml:'🗂️ XML','pdf-text':'📄 PDF.js',ocr:'🔍 OCR',gemini:'🔮 Gemini',manual:'✍️ Thủ công',pdf:'📄 PDF.js'};
+  tbody.innerHTML=records.slice().reverse().map((r,i)=>`<tr>
+    <td style="padding:9px 12px">${records.length-i}</td><td><strong>${r.ncc}</strong></td><td>${r.hd}</td><td>${r.date||'—'}</td>
+    <td style="text-align:right">${r.value?Number(r.value).toLocaleString('vi-VN')+' đ':'—'}</td>
+    <td><span style="font-size:11px">${mL[r.dataSource]||'—'}</span></td>
+    <td><span class="badge ${sB[r.status]||''}">${sL[r.status]||r.status}</span></td>
+    <td style="text-align:center"><strong style="color:${r.score>=80?'var(--green2)':r.score>=60?'var(--yellow)':'var(--red)'}">${r.score}%</strong></td>
+    <td><button class="btn btn-outline btn-sm" onclick="loadRecord(${r.id})">✏️ Mở</button> <button class="btn btn-sm" style="background:#eee;color:#555" onclick="delRecord(${r.id})">🗑</button></td>
+  </tr>`).join('');
+}
+function loadRecord(id){
+  const r=records.find(x=>x.id===id);if(!r)return;
+  editingId=id;dataSource=r.dataSource||'manual';
+  ['ncc','mst','hd','date','value','tax','taxrate','po','ktv','tk','desc'].forEach(k=>{const el=document.getElementById('f-'+k);if(el){el.value=r[k]||'';el.classList.toggle('ai-filled',!!(r[k]&&r.dataSource!=='manual'));}});
+  currentAnswers=JSON.parse(JSON.stringify(r.answers||{}));
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-new').classList.add('active');
+  document.querySelectorAll('.tab-btn')[1].classList.add('active');
+  renderChecklist();if(Object.keys(currentAnswers).length)renderAISummary();
+}
+function delRecord(id){if(!confirm('Xóa?'))return;records=records.filter(r=>r.id!==id);localStorage.setItem('ct_free_v1',JSON.stringify(records));renderList();}
+
+// ════════════════════════════════════════════════════════
+// APPROVE
+// ════════════════════════════════════════════════════════
+function renderApprove(){
+  const area=document.getElementById('approveArea');
+  const pending=records.filter(r=>r.status==='review');
+  if(!pending.length){area.innerHTML='<div class="card"><div class="card-body" style="text-align:center;color:var(--gray);padding:28px;">✅ Không có hồ sơ nào chờ duyệt.</div></div>';return;}
+  const mL={xml:'🗂️ XML','pdf-text':'📄 PDF.js',ocr:'🔍 OCR',gemini:'🔮 Gemini',manual:'✍️ Thủ công',pdf:'📄 PDF.js'};
+  area.innerHTML=pending.map(r=>{
+    const fails=[],manuals=[];
+    for(let i=1;i<=30;i++){const a=r.answers[i]||{};const eff=a.userOverride||a.status;
+      if(eff==='fail'){const it=ALL_ITEMS.find(x=>x.id===i);fails.push(`<li><strong>Mục ${i}:</strong> ${it?it.text.substring(0,70)+'…':''} ${a.reason?'– <em style="color:var(--red)">'+a.reason+'</em>':''}</li>`);}
+      if(eff==='manual'){const it=ALL_ITEMS.find(x=>x.id===i);manuals.push(`<span style="font-size:11px;background:var(--lyellow);color:var(--yellow);padding:2px 6px;border-radius:4px;margin:2px;display:inline-block">#${i}</span>`);}}
+    return `<div class="card" id="app-${r.id}">
+      <div class="card-header">📄 ${r.ncc} | HĐ: ${r.hd} | ${r.date||'—'} | ${mL[r.dataSource]||''}</div>
+      <div class="card-body">
+        <div class="form-grid cols3" style="margin-bottom:12px">
+          <div><label style="font-size:11px;color:var(--gray)">MST NCC</label><div>${r.mst||'—'}</div></div>
+          <div><label style="font-size:11px;color:var(--gray)">Giá trị</label><div><strong>${r.value?Number(r.value).toLocaleString('vi-VN')+' đ':'—'}</strong></div></div>
+          <div><label style="font-size:11px;color:var(--gray)">Điểm</label><div><strong style="font-size:22px;color:${r.score>=80?'var(--green2)':r.score>=60?'var(--yellow)':'var(--red)'}">${r.score}%</strong> ✅${r.ok} ❌${r.fail} ⚠${r.manual}</div></div>
+        </div>
+        ${fails.length?`<div style="background:var(--lred);border-radius:7px;padding:10px 14px;margin-bottom:10px;"><strong style="color:var(--red)">❌ Mục không đạt (${fails.length}):</strong><ul style="margin:5px 0 0 14px;font-size:12px;color:#555">${fails.join('')}</ul></div>`:'<div style="background:var(--lgreen);border-radius:7px;padding:8px 14px;margin-bottom:10px;color:var(--green);font-size:13px;">✅ Không có mục nào bị đánh dấu không đạt.</div>'}
+        ${manuals.length?`<div style="margin-bottom:10px"><strong style="font-size:12px;color:var(--yellow)">⚠ Mục cần kiểm tra thủ công (${manuals.length}):</strong><div style="margin-top:5px">${manuals.join('')}</div></div>`:''}
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-success btn-sm" onclick="approve(${r.id})">✅ Phê duyệt</button>
+          <button class="btn btn-danger btn-sm" onclick="showRejectBox(${r.id})">❌ Từ chối</button>
+        </div>
+        <textarea class="reject-reason" id="rj-${r.id}" placeholder="Lý do từ chối (bắt buộc)..."></textarea>
+        <button class="btn btn-danger btn-sm" id="rjbtn-${r.id}" style="margin-top:6px;display:none" onclick="reject(${r.id})">Xác nhận từ chối</button>
+      </div></div>`;
+  }).join('');
+}
+function approve(id){const r=records.find(x=>x.id===id);if(!r)return;r.status='approved';r.approvedBy='Kế toán trưởng';r.approvedAt=new Date().toLocaleString('vi-VN');localStorage.setItem('ct_free_v1',JSON.stringify(records));renderApprove();}
+function showRejectBox(id){document.getElementById('rj-'+id).style.display='block';document.getElementById('rjbtn-'+id).style.display='inline-flex';}
+function reject(id){const reason=document.getElementById('rj-'+id).value.trim();if(!reason){alert('Nhập lý do từ chối.');return;}const r=records.find(x=>x.id===id);r.status='rejected';r.rejectReason=reason;r.approvedBy='Kế toán trưởng';r.approvedAt=new Date().toLocaleString('vi-VN');localStorage.setItem('ct_free_v1',JSON.stringify(records));renderApprove();}
+
+// ════════════════════════════════════════════════════════
+// STATS
+// ════════════════════════════════════════════════════════
+function renderStats(){
+  const total=records.length,approved=records.filter(r=>r.status==='approved').length,rejected=records.filter(r=>r.status==='rejected').length;
+  const avg=total?Math.round(records.reduce((s,r)=>s+r.score,0)/total):0;
+  document.getElementById('statsGrid').innerHTML=`
+    <div class="stat-card"><div class="num">${total}</div><div class="lbl">Tổng hồ sơ</div></div>
+    <div class="stat-card" style="border-top-color:var(--green2)"><div class="num" style="color:var(--green2)">${approved}</div><div class="lbl">Đã duyệt</div></div>
+    <div class="stat-card" style="border-top-color:var(--red)"><div class="num" style="color:var(--red)">${rejected}</div><div class="lbl">Từ chối</div></div>
+    <div class="stat-card" style="border-top-color:#BF8F00"><div class="num" style="color:#BF8F00">${avg}%</div><div class="lbl">Điểm TB</div></div>`;
+  const freq={};
+  records.forEach(r=>{for(let i=1;i<=30;i++){const s=r.answers[i]||{};if((s.userOverride||s.status)==='fail') freq[i]=(freq[i]||0)+1;}});
+  const sorted=Object.entries(freq).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  document.getElementById('statsDetail').innerHTML=sorted.length
+    ?`<table class="data-table"><thead><tr><th style="padding:9px 12px">Mục</th><th>Nội dung</th><th>Số lần lỗi</th></tr></thead><tbody>`+sorted.map(([id,cnt])=>{const it=ALL_ITEMS.find(x=>x.id==id);return`<tr><td style="font-weight:700;padding:9px 12px">#${id}</td><td>${it?it.text.substring(0,90)+'…':''}</td><td><strong style="color:var(--red)">${cnt}</strong></td></tr>`;}).join('')+`</tbody></table>`
+    :`<p style="color:var(--gray);padding:14px">Chưa có dữ liệu.</p>`;
+  const sL={draft:'Nháp',review:'Chờ duyệt',approved:'Đã duyệt',rejected:'Từ chối'};
+  const sB={draft:'badge-pending',review:'badge-review',approved:'badge-approved',rejected:'badge-rejected'};
+  const mL={xml:'🗂️',pdf:'📄','pdf-text':'📄',ocr:'🔍',gemini:'🔮',manual:'✍️'};
+  document.getElementById('statsRecent').innerHTML=records.slice(-8).reverse().map(r=>
+    `<tr><td style="padding:9px 12px">${r.ncc}</td><td>${r.hd}</td><td>${mL[r.dataSource]||'—'}</td><td><span class="badge ${sB[r.status]}">${sL[r.status]}</span></td><td style="text-align:center"><strong style="color:${r.score>=80?'var(--green2)':r.score>=60?'var(--yellow)':'var(--red)'}">${r.score}%</strong></td></tr>`
+  ).join('');
+}
+
+// ════════════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════════════
+document.getElementById('tabApproveBtn').style.display='none';
+renderChecklist();
+</script>
+</body>
+</html>
